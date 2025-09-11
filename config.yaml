@@ -1,0 +1,100 @@
+# /opt/juice-charger/config.yaml
+
+# --- MQTT Einstellungen ---
+mqtt:
+  broker_host: "mqtt.loc"            # Hostname oder IP-Adresse Ihres MQTT-Brokers
+  broker_port: 1883                  # Port Ihres MQTT-Brokers
+  client_id: "JuiceBoosterPi"        # Eindeutige Client-ID für diesen Raspberry Pi
+  username: "synology"               # MQTT-Benutzername 
+  password: "sonne18"                # MQTT-Passwort 
+  base_topic: "juicebooster"         # Basis-Topic für alle JuiceBooster-relevanten MQTT-Nachrichten
+
+# --- Logging Einstellungen ---
+# MQTT hat zusätzlich einen Debug Topic
+logging:
+  file_path: "/opt/juice-charger/charger.log" # Pfad zur Log-Datei
+  level: "INFO"                               # Logging-Level (INFO, DEBUG, WARNING, ERROR)
+
+# --- RLC Percentages (Werte frei definierbar) ---
+# Hier wird die reduzerung der Leistung über die 4 Eingänge definiert. Der DIP 2 muss auf ON stehen
+# Die Blaue LED gibt den Status an. 
+rlc_percentages:
+  rlc1: 75   # Prozentwert fuer RLC-Pin 1 (GPIO 21)
+  rlc2: 50   # Prozentwert fuer RLC-Pin 2 (GPIO 20)
+  rlc3: 25   # Prozentwert fuer RLC-Pin 3 (GPIO 16)
+  rlc4: 0    # Prozentwert fuer RLC-Pin 4 (GPIO 5)
+
+# --- LEDs on ---
+# Die LEDs lassen sich ausschalten
+leds:
+  enabled: true
+
+# --- Buzzer Einstellungen ---
+buzzer:
+  enabled: true
+  # Der buzzer kann aktiviert werde. Hier wird der ursprüngliche code von Juice CHARGER Easy verwendet
+
+  melodies:
+    startup: # Melodie beim Start  Dienstes 
+      sequence:
+        - {f: 3000, d: 400}
+        - {f: 0, d: 0} # f=0 bedeutet Pause, d=0 ist keine zusaetzliche Wartezeit
+
+    car_connected: # Melodie wenn ein Auto verbunden wird (basierend auf original "car_connected" aus JS)
+      sequence:
+        - {f: 2000, d: 100}
+        - {f: 0, d: 50}
+        - {f: 2000, d: 100}
+
+    start_charging: # Melodie beim tatsaechlichen Start des Ladevorgangs (Strom fliesst)
+      sequence:
+        - {f: 3000, d: 400}
+        - {f: 0, d: 0}
+
+    stop_charging: # Melodie wenn der Ladevorgang stoppt (neue Melodie, um das Ende anzuzeigen)
+      sequence:
+        - {f: 1000, d: 300} # Ein tiefer Ton
+
+    reject: # Melodie fuer eine Ablehnung (z.B. falsche RFID, Fehler)
+      sequence:
+        - {f: 3000, d: 200}
+        - {f: 0, d: 100}
+        - {f: 3000, d: 200}
+        - {f: 0, d: 100}
+        - {f: 3000, d: 200}
+        - {f: 0, d: 0}
+
+    # Weitere Melodien aus Ihrer JS-Config, die Sie verwenden koennen:
+    # selftest_completed: # Wird jetzt fuer 'startup' verwendet
+    #   sequence:
+    #     - {f: 3000, d: 400}
+    #     - {f: 0, d: 0}
+    # mastercard_stored:
+    #   sequence:
+    #     - {f: 3000, d: 1000}
+    #     - {f: 0, d: 0}
+    # add_card:
+    #   sequence:
+    #     - {f: 3000, d: 200}
+    #     - {f: 0, d: 200}
+    #     - {f: 3000, d: 1000}
+    #     - {f: 0, d: 0}
+    # remove_card:
+    #   sequence:
+    #    - {f: 3000, d: 200}
+    #    - {f: 0, d: 200}
+    #    - {f: 3000, d: 200}
+    #    - {f: 0, d: 200}
+    #    - {f: 3000, d: 200}
+    #    - {f: 0, d: 200}
+    #    - {f: 3000, d: 1000}
+    #    - {f: 0, d: 0}
+    # read_uid_failed:
+    #   sequence:
+    #    - {f: 3000, d: 200}
+    #    - {f: 0, d: 200}
+    #    - {f: 3000, d: 200}
+    #    - {f: 0, d: 200}
+    #    - {f: 3000, d: 200}
+    #    - {f: 0, d: 200}
+    #    - {f: 0, d: 0}
