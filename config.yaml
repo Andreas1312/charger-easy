@@ -24,10 +24,6 @@ rlc_percentages:
   rlc3: 25   # Prozentwert fuer RLC-Pin 3 (GPIO 16)
   rlc4: 0    # Prozentwert fuer RLC-Pin 4 (GPIO 5)
 
-# --- LEDs on ---
-# Die LEDs lassen sich ausschalten
-leds:
-  enabled: true
 
 # --- Buzzer Einstellungen ---
 buzzer:

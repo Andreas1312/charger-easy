@@ -59,18 +59,17 @@ RLC_PERCENTAGES_FROM_CONFIG = config.get('rlc_percentages', {})
 # --- Buzzer Konfiguration (aus der config.yaml) ---
 BUZZER_CONFIG = config.get('buzzer', {'enabled': False, 'melodies': {}})
 
-# --- LEDs Konfiguration 
-LEDS_CONFIG = config.get('leds', {'enabled': False})
-LED_ENABLED = LEDS_CONFIG.get('enabled', False)
 
 # --- Globale Zustandsvariablen ---
 controller = None
 client = None
+# RLC_enabled = False 
 evcc_enabled = False             
 evcc_target_current = 6          
 was_charging = False             
 # Verfolgt den letzten CP-Status, um Änderungen zu erkennen und Melodien auszulösen
 last_cp_state = None
+
 
 # --- MQTT Callbacks ---
 def on_connect(client, userdata, flags, rc):
@@ -125,10 +124,10 @@ def main():
             cp_state = controller.get_cp_state()
             max_hw_current = controller.get_max_hardware_current()
             is_connected = (cp_state in ['B', 'C'])
-            green_led_state = evcc_enabled
-            controller.set_led_state('EVCC', green_led_state)
-            blue_led_state = is_charging and not free_charge_mode
-            controller.set_led_state('RCL', blue_led_state)
+            #green_led_state = evcc_enabled
+            #controller.set_led_state('EVCC', green_led_state)
+            #blue_led_state = RLC_enabled
+            #controller.set_led_state('RLC', blue_led_state)
 
             
             # Erkennung von CP-Status-Änderungen für Melodien

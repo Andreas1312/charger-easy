@@ -7,8 +7,8 @@ import logging
 
 class JuiceBoosterControl: 
     def __init__(self, spi_bus=0, spi_device=0, spi_max_speed_hz=976000, rlc_percentages_from_config=None, buzzer_config=None, led_enabled=False): 
-         self.logger = logging.getLogger(__name__)
-        # SPI Initialisierung
+        self.logger = logging.getLogger(__name__)
+        # SPI Initialisierung 
         self.spi = spidev.SpiDev() 
         self.spi.open(spi_bus, spi_device) 
         self.spi.max_speed_hz = spi_max_speed_hz
@@ -39,28 +39,12 @@ class JuiceBoosterControl:
                 else:
                     print(f"WARNUNG: RLC-Schluessel '{rlc_config_key}' in config.yaml hat keinen zugewiesenen BCM-Pin im Code.", file=sys.stderr)
         
-        rlc_mappings_list_temp.sort(key=lambda x: x['percentage'], reverse=True)
+        rlc_mappings_list_temp.sort(key=lambda x: x['percentage'])
         self.RLC_PINS = {item['percentage']: item['bcm_pin'] for item in rlc_mappings_list_temp}
 
         
         self.last_set_current = -1 
-        # --- LEDs --- 
-
-        self.leds_enabled = led_enabled
-
-        if self.leds_enabled:
-            GPIO.setup(self.LED_GREEN_PIN, GPIO.OUT)
-            GPIO.output(self.LED_GREEN_PIN, GPIO.LOW) # LED initial ausschalten
-            self.logger.info(f"Grüne LED (freeCharge) initialisiert auf GPIO-Pin {self.LED_GREEN_PIN}.")
- 
-            GPIO.setup(self.LED_BLUE_PIN, GPIO.OUT)
-            GPIO.output(self.LED_BLUE_PIN, GPIO.LOW) # LED initial ausschalten
-            self.logger.info(f"Blaue LED (rfid) initialisiert auf GPIO-Pin {self.LED_BLUE_PIN}.")
-        else:
-            self.logger.info("LED-Steuerung ist in der Konfiguration deaktiviert.")
-
-
-
+      
         # --- GPIO Setup ---
         GPIO.setwarnings(False) 
         GPIO.setmode(GPIO.BCM) 
@@ -71,8 +55,24 @@ class JuiceBoosterControl:
         
         rlc_bcm_pins_to_setup_list = list(self.RLC_PINS.values())
         if rlc_bcm_pins_to_setup_list: 
-            GPIO.setup(rlc_bcm_pins_to_setup_list, GPIO.IN, pull_up_down=GPIO.PUD_UP) 
+            GPIO.setup(rlc_bcm_pins_to_setup_list, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) 
         
+        #if self.leds_enabled:
+        GPIO.setup(self.LED_GREEN_PIN, GPIO.OUT)
+        GPIO.output(self.LED_GREEN_PIN, GPIO.LOW) # LED initial ausschalten
+        self.logger.info(f"Grüne LED (EVCC) initialisiert auf GPIO-Pin {self.LED_GREEN_PIN}.")
+        if GPIO.input(self.FREE_CHARGE_PIN) == GPIO.HIGH:
+            led_state = GPIO.HIGH
+
+ 
+        GPIO.setup(self.LED_BLUE_PIN, GPIO.OUT)
+        GPIO.output(self.LED_BLUE_PIN, GPIO.LOW) # LED initial ausschalten
+        self.logger.info(f"Blaue LED (RCL) initialisiert auf GPIO-Pin {self.LED_BLUE_PIN}.")
+        if GPIO.input(self.RLC_DIP_PIN) == GPIO.HIGH:
+            led_state = GPIO.HIGH
+
+
+
         # Buzzer GPIO Setup und PWM Initialisierung
         GPIO.setup(self.BUZZER_PIN, GPIO.OUT) 
         GPIO.output(self.BUZZER_PIN, GPIO.LOW) # Sicherstellen, dass Buzzer initial aus ist
@@ -98,10 +98,10 @@ class JuiceBoosterControl:
         pin = None
         if led_name == 'EVCC':
             pin = self.LED_GREEN_PIN
-        elif led_name == 'RCL':
+        elif led_name == 'RLC':
             pin = self.LED_BLUE_PIN
         else:
-            self.logger.warning(f"Versuch, unbekannte LED zu steuern: {led_name}. Gültige Namen sind 'RCL' oder 'EVCC'.")
+            self.logger.warning(f"Versuch, unbekannte LED zu steuern: {led_name}. Gültige Namen sind 'RLC' oder 'EVCC'.")
             return
 
         gpio_state = GPIO.HIGH if state else GPIO.LOW
@@ -198,13 +198,13 @@ class JuiceBoosterControl:
             return 100 
         
         for percentage, pin in self.RLC_PINS.items(): 
-            if GPIO.input(pin): 
+            if not GPIO.input(pin): 
                 return percentage
         
         return 100 
 
     def is_free_charging_enabled(self): 
-        return GPIO.input(self.FREE_CHARGE_PIN) 
+        return not GPIO.input(self.FREE_CHARGE_PIN) 
 
     def set_charge_current(self, requested_amperes): 
         max_hw_current = self.get_max_hardware_current() 
