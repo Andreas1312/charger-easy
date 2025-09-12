@@ -7,6 +7,7 @@ import logging
 
 class JuiceBoosterControl: 
     def __init__(self, spi_bus=0, spi_device=0, spi_max_speed_hz=976000, rlc_percentages_from_config=None, buzzer_config=None, led_enabled=False): 
+         self.logger = logging.getLogger(__name__)
         # SPI Initialisierung
         self.spi = spidev.SpiDev() 
         self.spi.open(spi_bus, spi_device) 
@@ -197,13 +198,13 @@ class JuiceBoosterControl:
             return 100 
         
         for percentage, pin in self.RLC_PINS.items(): 
-            if not GPIO.input(pin): 
+            if GPIO.input(pin): 
                 return percentage
         
         return 100 
 
     def is_free_charging_enabled(self): 
-        return not GPIO.input(self.FREE_CHARGE_PIN) 
+        return GPIO.input(self.FREE_CHARGE_PIN) 
 
     def set_charge_current(self, requested_amperes): 
         max_hw_current = self.get_max_hardware_current() 

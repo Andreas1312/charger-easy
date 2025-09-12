@@ -1,0 +1,45 @@
+# EVCC loadpoints + charger Konfiguration (Beispiel)
+loadpoints:
+  - title: "JUICE Charger Easy"
+    charger: juice-booster
+    meter: shelly-pm
+    phases: 1
+    maxcurrent: 16
+    # standbypower: 4
+ 
+chargers:
+  - name: "juice-booster"
+    type: custom
+    # MQTT-basierte Status/Control (angepasst an config.yaml base_topic)
+    status:
+      source: mqtt
+      topic: "juicebooster/status"        # CP-Status (A/E/B/C) oder custom payload
+    enabled:
+      source: mqtt
+      topic: "juicebooster/enabled"      # charger enabled state (true/false)
+      # timeout: 30s                      # optional
+    enable:
+      source: mqtt
+      topic: "juicebooster/enable/set"   # set enabled (true/false)
+    maxcurrent:
+      source: mqtt
+      topic: "juicebooster/maxCurrent/set" # set charger max current (A)
+    # optional: topics für status-abruf/publish können ergänzt werden:
+    # current:
+    #   source: mqtt
+    #   topic: "juicebooster/chargeCurrent"
+meters:
+  - name: shelly-pm
+    type: template
+    template: shelly-1pm
+    usage: charge
+    host: 192.168.178.123 # IP-Adresse oder Hostname
+    user:  
+    password:   
+    channel: 0 
+
+
+mqtt:
+  broker: "mqtt.local"       # EVCC MQTT Broker
+  user: "myEVCC"
+  password: "Paswdchager"

@@ -2,11 +2,11 @@
 
 # --- MQTT Einstellungen ---
 mqtt:
-  broker_host: "mqtt.loc"            # Hostname oder IP-Adresse Ihres MQTT-Brokers
+  broker_host: "mqtt.local"            # Hostname oder IP-Adresse Ihres MQTT-Brokers
   broker_port: 1883                  # Port Ihres MQTT-Brokers
   client_id: "JuiceBoosterPi"        # Eindeutige Client-ID für diesen Raspberry Pi
-  username: "synology"               # MQTT-Benutzername 
-  password: "sonne18"                # MQTT-Passwort 
+  username: "myEVCC"               # MQTT-Benutzername 
+  password: "Paswdchager"                # MQTT-Passwort 
   base_topic: "juicebooster"         # Basis-Topic für alle JuiceBooster-relevanten MQTT-Nachrichten
 
 # --- Logging Einstellungen ---
@@ -32,26 +32,26 @@ leds:
 # --- Buzzer Einstellungen ---
 buzzer:
   enabled: true
-  # Der buzzer kann aktiviert werde. Hier wird der ursprüngliche code von Juice CHARGER Easy verwendet
+  # Der buzzer kann aktiviert werde. Hier wird der ursprüngliche Buzzer-code von Juice CHARGER Easy verwendet
 
   melodies:
-    startup: # Melodie beim Start  Dienstes 
+    startup: 
       sequence:
         - {f: 3000, d: 400}
-        - {f: 0, d: 0} # f=0 bedeutet Pause, d=0 ist keine zusaetzliche Wartezeit
+        - {f: 0, d: 0} 
 
-    car_connected: # Melodie wenn ein Auto verbunden wird (basierend auf original "car_connected" aus JS)
+    car_connected: # Melodie wenn ein Auto verbunden wird
       sequence:
         - {f: 2000, d: 100}
         - {f: 0, d: 50}
         - {f: 2000, d: 100}
 
-    start_charging: # Melodie beim tatsaechlichen Start des Ladevorgangs (Strom fliesst)
+    start_charging: # Melodie beim tatsaechlichen Start des Ladevorgangs 
       sequence:
         - {f: 3000, d: 400}
         - {f: 0, d: 0}
 
-    stop_charging: # Melodie wenn der Ladevorgang stoppt (neue Melodie, um das Ende anzuzeigen)
+    stop_charging: # Melodie wenn der Ladevorgang stoppt 
       sequence:
         - {f: 1000, d: 300} # Ein tiefer Ton
 
@@ -63,8 +63,7 @@ buzzer:
         - {f: 0, d: 100}
         - {f: 3000, d: 200}
         - {f: 0, d: 0}
-
-    # Weitere Melodien aus Ihrer JS-Config, die Sie verwenden koennen:
+#Für eventuelle RFID integration
     # selftest_completed: # Wird jetzt fuer 'startup' verwendet
     #   sequence:
     #     - {f: 3000, d: 400}
