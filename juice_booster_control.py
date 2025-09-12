@@ -52,26 +52,13 @@ class JuiceBoosterControl:
         GPIO.setup(self.MAX_AMP_PINS, GPIO.IN, pull_up_down=GPIO.PUD_UP) 
         GPIO.setup(self.FREE_CHARGE_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP) 
         GPIO.setup(self.RLC_DIP_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP) 
-        
+        GPIO.setup(self.LED_GREEN_PIN, GPIO.OUT)
+        GPIO.setup(self.LED_BLUE_PIN, GPIO.OUT)
+
         rlc_bcm_pins_to_setup_list = list(self.RLC_PINS.values())
         if rlc_bcm_pins_to_setup_list: 
             GPIO.setup(rlc_bcm_pins_to_setup_list, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) 
-        
-        #if self.leds_enabled:
-        GPIO.setup(self.LED_GREEN_PIN, GPIO.OUT)
-        GPIO.output(self.LED_GREEN_PIN, GPIO.LOW) # LED initial ausschalten
-        self.logger.info(f"Grüne LED (EVCC) initialisiert auf GPIO-Pin {self.LED_GREEN_PIN}.")
-        if GPIO.input(self.FREE_CHARGE_PIN) == GPIO.HIGH:
-            led_state = GPIO.HIGH
-
- 
-        GPIO.setup(self.LED_BLUE_PIN, GPIO.OUT)
-        GPIO.output(self.LED_BLUE_PIN, GPIO.LOW) # LED initial ausschalten
-        self.logger.info(f"Blaue LED (RCL) initialisiert auf GPIO-Pin {self.LED_BLUE_PIN}.")
-        if GPIO.input(self.RLC_DIP_PIN) == GPIO.HIGH:
-            led_state = GPIO.HIGH
-
-
+   
 
         # Buzzer GPIO Setup und PWM Initialisierung
         GPIO.setup(self.BUZZER_PIN, GPIO.OUT) 
@@ -89,25 +76,24 @@ class JuiceBoosterControl:
         # Spiele Startup Melodie, wenn Buzzer aktiviert ist
         if self.buzzer_enabled:
             self.play_melody("startup") # Kann "selftest_completed" sein, je nach gewählter Melodie
-    # -- Status LEDs --
-    def set_led_state(self, led_name, state):
 
-        if not self.leds_enabled:
-            return # Keine Aktion, wenn LEDs deaktiviert sind
+    
+    def led ():
+        while True:
+            evcc_state = GPIO.input(FREE_CHARGE_PIN)
+            rlc_state = GPIO.input(RLC_DIP_PIN)
 
-        pin = None
-        if led_name == 'EVCC':
-            pin = self.LED_GREEN_PIN
-        elif led_name == 'RLC':
-            pin = self.LED_BLUE_PIN
-        else:
-            self.logger.warning(f"Versuch, unbekannte LED zu steuern: {led_name}. Gültige Namen sind 'RLC' oder 'EVCC'.")
-            return
+            if evcc_state == GPIO.HIGH:
+                GPIO.output(LED_GREEN_PIN, GPIO.HIGH)
+            else:
+                GPIO.output(LED_GREEN_PIN, GPIO.LOW)
 
-        gpio_state = GPIO.HIGH if state else GPIO.LOW
-        GPIO.output(pin, gpio_state)
-        self.logger.debug(f"LED '{led_name}' (Pin {pin}) auf {'AN' if state else 'AUS'} gesetzt.")
-
+            if rlc_state == GPIO.HIGH:
+                GPIO.output(LED_BLUE_PIN, GPIO.HIGH)
+            else:
+                GPIO.output(LED_BLUE_PIN, GPIO.LOW)
+                
+                
     def _write_pot(self, value, non_volatile=False): 
         msb = 0x20 if non_volatile else 0x00
         lsb = 0xFF - int(value) 
