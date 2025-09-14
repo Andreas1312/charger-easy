@@ -78,22 +78,24 @@ class JuiceBoosterControl:
             self.play_melody("startup") # Kann "selftest_completed" sein, je nach gewählter Melodie
 
     
-    def led ():
+    def led (self):
         while True:
-            evcc_state = GPIO.input(FREE_CHARGE_PIN)
-            rlc_state = GPIO.input(RLC_DIP_PIN)
+            evcc_state = GPIO.input(self.FREE_CHARGE_PIN)
+            rlc_state = GPIO.input(self.RLC_DIP_PIN)
 
             if evcc_state == GPIO.HIGH:
-                GPIO.output(LED_GREEN_PIN, GPIO.HIGH)
+                GPIO.output(self.LED_GREEN_PIN, GPIO.HIGH)
+                print("FREE_CHARGE_PIN is ON. Turning Green LED ON.")
             else:
-                GPIO.output(LED_GREEN_PIN, GPIO.LOW)
+                GPIO.output(self.LED_GREEN_PIN, GPIO.LOW)
 
-            if rlc_state == GPIO.HIGH:
-                GPIO.output(LED_BLUE_PIN, GPIO.HIGH)
+            if rlc_state == GPIO.LOW:
+                GPIO.output(self.LED_BLUE_PIN, GPIO.HIGH)
+                print("RLC_DIP_PIN is ON. Turning Blue LED ON.")
             else:
-                GPIO.output(LED_BLUE_PIN, GPIO.LOW)
+                GPIO.output(self.LED_BLUE_PIN, GPIO.LOW)
                 
-                
+
     def _write_pot(self, value, non_volatile=False): 
         msb = 0x20 if non_volatile else 0x00
         lsb = 0xFF - int(value) 
@@ -168,13 +170,19 @@ class JuiceBoosterControl:
     def get_max_hardware_current(self): 
         try: 
             selected_pins = self.MAX_AMP_PINS[0:3] 
-            _vals = [not GPIO.input(pin) for pin in selected_pins] 
-            binary_str = "".join(map(str, map(int, _vals)))
-            read_value = int(binary_str, 2)
-            correct_index = 7 - read_value 
-            
-            max_amp_array = [6, 8, 10, 13, 16, 20, 25, 32] 
-            return max_amp_array[correct_index] 
+            raw_vals = [GPIO.input(pin) for pin in selected_pins]
+            #binary_str = "".join(map(str, map(int, raw_vals)))
+            #read_value = int(binary_str, 2)
+            #correct_index = 7 - read_value 
+            position = raw_vals[0] + (raw_vals[1] << 1) + (raw_vals[2] << 2)
+            max_amp_array = [6, 8, 10, 13, 16, 20, 25, 32]
+            if 0 <= position <= 7:
+                return max_amp_array[position]
+            else:
+                print(f"Ungültige Schalterposition {position}. Raw inputs: {raw_vals}", file=sys.stderr)
+                return 6
+
+            #return max_amp_array[correct_index] 
         except Exception as e: 
             print(f"Fehler beim Lesen des Drehschalters: {e}", file=sys.stderr) 
             return 6 
