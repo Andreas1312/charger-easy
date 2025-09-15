@@ -59,9 +59,9 @@ RLC_PERCENTAGES_FROM_CONFIG = config.get('rlc_percentages', {})
 # --- Buzzer Konfiguration (aus der config.yaml) ---
 BUZZER_CONFIG = config.get('buzzer', {'enabled': False, 'melodies': {}})
 
-# --- LEDs Konfiguration 
-LEDS_CONFIG = config.get('leds', {'enabled': False})
-LED_ENABLED = LEDS_CONFIG.get('enabled', False)
+# --- LED Konfiguration (aus der config.yaml) ---
+LED_ENABLED = config.get('leds', {}).get('enabled', False)
+
 
 # --- Globale Zustandsvariablen ---
 controller = None
@@ -69,8 +69,8 @@ client = None
 evcc_enabled = False             
 evcc_target_current = 6          
 was_charging = False             
-# Verfolgt den letzten CP-Status, um Änderungen zu erkennen und Melodien auszulösen
 last_cp_state = None
+
 
 # --- MQTT Callbacks ---
 def on_connect(client, userdata, flags, rc):
@@ -106,8 +106,8 @@ def main():
         # Controller mit RLC-Prozentsaetzen und Buzzer-Konfiguration initialisieren
         controller = JuiceBoosterControl(
             rlc_percentages_from_config=RLC_PERCENTAGES_FROM_CONFIG,
-            buzzer_config=BUZZER_CONFIG
-        ) 
+            buzzer_config=BUZZER_CONFIG, led_enabled=LED_ENABLED
+            ) 
         
         client = mqtt.Client(client_id=MQTT_CLIENT_ID)
         if MQTT_USERNAME and MQTT_PASSWORD:
@@ -125,12 +125,12 @@ def main():
             cp_state = controller.get_cp_state()
             max_hw_current = controller.get_max_hardware_current()
             is_connected = (cp_state in ['B', 'C'])
-            green_led_state = evcc_enabled
-            controller.set_led_state('EVCC', green_led_state)
-            blue_led_state = is_charging and not free_charge_mode
-            controller.set_led_state('RCL', blue_led_state)
 
-            
+            # LEDs aktualisieren, wenn aktiviert
+            if LED_ENABLED:
+                controller.led()
+
+
             # Erkennung von CP-Status-Änderungen für Melodien
             if cp_state != last_cp_state:
                 if cp_state in ['B', 'C'] and last_cp_state not in ['B', 'C']:
@@ -146,7 +146,7 @@ def main():
             
             # --- Priorisierung der Lademodi (nur FreeCharge und EVCC) ---
             if free_charge_mode: 
-                mode_status = "FreeCharge (DIP-Schalter an)"
+                mode_status = "FreeCharge Mode"
                 if is_connected:
                     requested_current_by_logic = max_hw_current
             else: 

@@ -7,8 +7,8 @@ import logging
 
 class JuiceBoosterControl: 
     def __init__(self, spi_bus=0, spi_device=0, spi_max_speed_hz=976000, rlc_percentages_from_config=None, buzzer_config=None, led_enabled=False): 
-         self.logger = logging.getLogger(__name__)
-        # SPI Initialisierung
+        self.logger = logging.getLogger(__name__)
+        # SPI Initialisierung 
         self.spi = spidev.SpiDev() 
         self.spi.open(spi_bus, spi_device) 
         self.spi.max_speed_hz = spi_max_speed_hz
@@ -23,6 +23,7 @@ class JuiceBoosterControl:
         self.LED_BLUE_PIN = 19
         self.BUZZER_PIN = 13
 
+        # --- RLC-Pin-Zuordnung ---
         _hardcoded_rlc_bcm_pins_mapping = {
             'rlc1': 21, 
             'rlc2': 20, 
@@ -39,28 +40,12 @@ class JuiceBoosterControl:
                 else:
                     print(f"WARNUNG: RLC-Schluessel '{rlc_config_key}' in config.yaml hat keinen zugewiesenen BCM-Pin im Code.", file=sys.stderr)
         
-        rlc_mappings_list_temp.sort(key=lambda x: x['percentage'], reverse=True)
+        rlc_mappings_list_temp.sort(key=lambda x: x['percentage'])
         self.RLC_PINS = {item['percentage']: item['bcm_pin'] for item in rlc_mappings_list_temp}
 
         
         self.last_set_current = -1 
-        # --- LEDs --- 
-
-        self.leds_enabled = led_enabled
-
-        if self.leds_enabled:
-            GPIO.setup(self.LED_GREEN_PIN, GPIO.OUT)
-            GPIO.output(self.LED_GREEN_PIN, GPIO.LOW) # LED initial ausschalten
-            self.logger.info(f"Grüne LED (freeCharge) initialisiert auf GPIO-Pin {self.LED_GREEN_PIN}.")
- 
-            GPIO.setup(self.LED_BLUE_PIN, GPIO.OUT)
-            GPIO.output(self.LED_BLUE_PIN, GPIO.LOW) # LED initial ausschalten
-            self.logger.info(f"Blaue LED (rfid) initialisiert auf GPIO-Pin {self.LED_BLUE_PIN}.")
-        else:
-            self.logger.info("LED-Steuerung ist in der Konfiguration deaktiviert.")
-
-
-
+      
         # --- GPIO Setup ---
         GPIO.setwarnings(False) 
         GPIO.setmode(GPIO.BCM) 
@@ -68,45 +53,39 @@ class JuiceBoosterControl:
         GPIO.setup(self.MAX_AMP_PINS, GPIO.IN, pull_up_down=GPIO.PUD_UP) 
         GPIO.setup(self.FREE_CHARGE_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP) 
         GPIO.setup(self.RLC_DIP_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP) 
-        
+        GPIO.setup(self.LED_GREEN_PIN, GPIO.OUT)
+        GPIO.setup(self.LED_BLUE_PIN, GPIO.OUT)
+
         rlc_bcm_pins_to_setup_list = list(self.RLC_PINS.values())
         if rlc_bcm_pins_to_setup_list: 
-            GPIO.setup(rlc_bcm_pins_to_setup_list, GPIO.IN, pull_up_down=GPIO.PUD_UP) 
-        
+            GPIO.setup(rlc_bcm_pins_to_setup_list, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) 
+   
+
         # Buzzer GPIO Setup und PWM Initialisierung
         GPIO.setup(self.BUZZER_PIN, GPIO.OUT) 
-        GPIO.output(self.BUZZER_PIN, GPIO.LOW) # Sicherstellen, dass Buzzer initial aus ist
+        GPIO.output(self.BUZZER_PIN, GPIO.LOW) 
 
-        self.buzzer_pwm = GPIO.PWM(self.BUZZER_PIN, 1000) # Standardfrequenz (wird in play_melody geaendert)
-        self.buzzer_pwm.stop() # Sicherstellen, dass PWM initial gestoppt ist
+        self.buzzer_pwm = GPIO.PWM(self.BUZZER_PIN, 1000)
+        self.buzzer_pwm.stop()
 
-        # --- Buzzer Melodien Konfiguration ---
+     
         self.buzzer_enabled = buzzer_config.get('enabled', False) if buzzer_config else False
         self.melodies = buzzer_config.get('melodies', {}) if buzzer_config else {}
 
         # --- Initialisierung des Potentiometers ---
         self.startup_initialize() 
-        # Spiele Startup Melodie, wenn Buzzer aktiviert ist
         if self.buzzer_enabled:
             self.play_melody("startup") # Kann "selftest_completed" sein, je nach gewählter Melodie
-    # -- Status LEDs --
-    def set_led_state(self, led_name, state):
 
-        if not self.leds_enabled:
-            return # Keine Aktion, wenn LEDs deaktiviert sind
+    # --- LED Steuerung ---
+    def led (self):
+        evcc_state = GPIO.input(self.FREE_CHARGE_PIN)
+        rlc_state = GPIO.input(self.RLC_DIP_PIN)
+        # Grüne LED für FREE_CHARGE_PIN Status
+        GPIO.output(self.LED_GREEN_PIN, GPIO.HIGH if evcc_state == GPIO.HIGH else GPIO.LOW)
 
-        pin = None
-        if led_name == 'EVCC':
-            pin = self.LED_GREEN_PIN
-        elif led_name == 'RCL':
-            pin = self.LED_BLUE_PIN
-        else:
-            self.logger.warning(f"Versuch, unbekannte LED zu steuern: {led_name}. Gültige Namen sind 'RCL' oder 'EVCC'.")
-            return
-
-        gpio_state = GPIO.HIGH if state else GPIO.LOW
-        GPIO.output(pin, gpio_state)
-        self.logger.debug(f"LED '{led_name}' (Pin {pin}) auf {'AN' if state else 'AUS'} gesetzt.")
+        # Blaue LED für RLC_DIP_PIN Status
+        GPIO.output(self.LED_BLUE_PIN, GPIO.HIGH if rlc_state == GPIO.LOW else GPIO.LOW)
 
     def _write_pot(self, value, non_volatile=False): 
         msb = 0x20 if non_volatile else 0x00
@@ -115,7 +94,7 @@ class JuiceBoosterControl:
             self.spi.xfer2([msb, lsb]) 
         except Exception as e: 
             print(f"Fehler beim Schreiben auf SPI: {e}", file=sys.stderr) 
-
+    # Mappt den gewünschten Stromwert (in Ampere) auf den entsprechenden Potentiometerwert Wischer Poti (0-255) Werte aus der cc.js von Juice Charger Easy
     def _amp_to_pot_value(self, amp): 
         res_vals = [45, 61, 74, 88, 103, 119, 136, 152, 167] 
         if amp <= 0: return res_vals[0] 
@@ -133,14 +112,14 @@ class JuiceBoosterControl:
         max_hw_current = self.get_max_hardware_current()
         pot_value_hw_max = self._amp_to_pot_value(max_hw_current)
         self._write_pot(pot_value_hw_max, non_volatile=True)
-        time.sleep(0.1) 
+        time.sleep(13.1) # Wartezeit bis sich der Juice Booster Set button sich nicht mehr verstellen lässt
         
         pot_value_0A = self._amp_to_pot_value(0)
         self._write_pot(pot_value_0A, non_volatile=False)
         self.last_set_current = 0
         print(f"Initialisierung abgeschlossen. HW-Limit: {max_hw_current}A. Aktiver Strom: 0A.")
         
-    def play_melody(self, melody_name, default_frequency=1000, default_duration_ms=200, duty_cycle=50): 
+    def play_melody(self, melody_name, default_frequency=1000, default_duration_ms=200, duty_cycle=80): 
         """
         Spielt eine definierte Melodie ab.
         Wenn die Melodie nicht gefunden wird oder keine Sequenz hat, wird ein einfacher Piepton abgespielt (falls enabled).
@@ -182,23 +161,25 @@ class JuiceBoosterControl:
     def get_max_hardware_current(self): 
         try: 
             selected_pins = self.MAX_AMP_PINS[0:3] 
-            _vals = [not GPIO.input(pin) for pin in selected_pins] 
-            binary_str = "".join(map(str, map(int, _vals)))
-            read_value = int(binary_str, 2)
-            correct_index = 7 - read_value 
-            
-            max_amp_array = [6, 8, 10, 13, 16, 20, 25, 32] 
-            return max_amp_array[correct_index] 
+            raw_vals = [GPIO.input(pin) for pin in selected_pins]
+            position = raw_vals[0] + (raw_vals[1] << 1) + (raw_vals[2] << 2)
+            max_amp_array = [6, 8, 10, 13, 16, 20, 25, 32]
+            if 0 <= position <= 7:
+                return max_amp_array[position]
+            else:
+                print(f"Ungültige Schalterposition {position}. Raw inputs: {raw_vals}", file=sys.stderr)
+                return 6
+
         except Exception as e: 
             print(f"Fehler beim Lesen des Drehschalters: {e}", file=sys.stderr) 
             return 6 
-
+    # Gibt den RLC-Wert in Prozent zurück 
     def get_rlc_percentage(self): 
-        if GPIO.input(self.RLC_DIP_PIN): 
+        if not GPIO.input(self.RLC_DIP_PIN): 
             return 100 
         
         for percentage, pin in self.RLC_PINS.items(): 
-            if GPIO.input(pin): 
+            if not GPIO.input(pin): 
                 return percentage
         
         return 100 
@@ -232,5 +213,5 @@ class JuiceBoosterControl:
         print("Raeume GPIO und SPI auf...") 
         self.set_charge_current(0) 
         self.spi.close() 
-        self.buzzer_pwm.stop() # PWM-Instanz explizit stoppen
+        self.buzzer_pwm.stop()
         GPIO.cleanup()
