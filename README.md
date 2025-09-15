@@ -1,6 +1,6 @@
 # Juice Booster (Juice Charger Easy) — EVCC / MQTT Integration  
 
-## Deutsch  
+### Deutsch  
 
 Dieses Repository enthält die Software, um die ursprüngliche Steuerung des **Juice Booster (Juice CHARGER Easy)** vollständig zu ersetzen und die Integration in **EVCC** über **MQTT** zu ermöglichen.  
 
@@ -70,7 +70,7 @@ RLC-Inputs können prozentuale Begrenzungen darstellen (per config). Reihenfolge
 
 ---
 
-## English  
+### English  
 
 This repository contains the software to **fully replace the original control logic of the Juice Booster (Juice CHARGER Easy)** and to enable integration into **EVCC** via **MQTT**.  
 
