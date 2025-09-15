@@ -79,22 +79,13 @@ class JuiceBoosterControl:
 
     
     def led (self):
-        while True:
-            evcc_state = GPIO.input(self.FREE_CHARGE_PIN)
-            rlc_state = GPIO.input(self.RLC_DIP_PIN)
+        evcc_state = GPIO.input(self.FREE_CHARGE_PIN)
+        rlc_state = GPIO.input(self.RLC_DIP_PIN)
+        # Grüne LED für FREE_CHARGE_PIN Status
+        GPIO.output(self.LED_GREEN_PIN, GPIO.HIGH if evcc_state == GPIO.HIGH else GPIO.LOW)
 
-            if evcc_state == GPIO.HIGH:
-                GPIO.output(self.LED_GREEN_PIN, GPIO.HIGH)
-                print("FREE_CHARGE_PIN is ON. Turning Green LED ON.")
-            else:
-                GPIO.output(self.LED_GREEN_PIN, GPIO.LOW)
-
-            if rlc_state == GPIO.LOW:
-                GPIO.output(self.LED_BLUE_PIN, GPIO.HIGH)
-                print("RLC_DIP_PIN is ON. Turning Blue LED ON.")
-            else:
-                GPIO.output(self.LED_BLUE_PIN, GPIO.LOW)
-                
+        # Blaue LED für RLC_DIP_PIN Status (invertiert)
+        GPIO.output(self.LED_BLUE_PIN, GPIO.HIGH if rlc_state == GPIO.LOW else GPIO.LOW)
 
     def _write_pot(self, value, non_volatile=False): 
         msb = 0x20 if non_volatile else 0x00
@@ -121,7 +112,7 @@ class JuiceBoosterControl:
         max_hw_current = self.get_max_hardware_current()
         pot_value_hw_max = self._amp_to_pot_value(max_hw_current)
         self._write_pot(pot_value_hw_max, non_volatile=True)
-        time.sleep(0.1) 
+        time.sleep(5.1) # Wartezeit auf Jucice Booster bis der Set wirksam wird 
         
         pot_value_0A = self._amp_to_pot_value(0)
         self._write_pot(pot_value_0A, non_volatile=False)
@@ -188,17 +179,17 @@ class JuiceBoosterControl:
             return 6 
 
     def get_rlc_percentage(self): 
-        if GPIO.input(self.RLC_DIP_PIN): 
+        if not GPIO.input(self.RLC_DIP_PIN): 
             return 100 
         
         for percentage, pin in self.RLC_PINS.items(): 
-            if not GPIO.input(pin): 
+            if GPIO.input(pin): 
                 return percentage
         
         return 100 
 
     def is_free_charging_enabled(self): 
-        return not GPIO.input(self.FREE_CHARGE_PIN) 
+        return GPIO.input(self.FREE_CHARGE_PIN) 
 
     def set_charge_current(self, requested_amperes): 
         max_hw_current = self.get_max_hardware_current() 
