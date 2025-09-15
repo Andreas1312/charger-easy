@@ -66,11 +66,9 @@ LED_ENABLED = config.get('leds', {}).get('enabled', False)
 # --- Globale Zustandsvariablen ---
 controller = None
 client = None
-# RLC_enabled = False 
 evcc_enabled = False             
 evcc_target_current = 6          
 was_charging = False             
-# Verfolgt den letzten CP-Status, um Änderungen zu erkennen und Melodien auszulösen
 last_cp_state = None
 
 
