@@ -7,3 +7,9 @@ This project provides a simple Python script to temporarily control the maximum 
 This script directly writes values to the digital potentiometer's register and has no built-in current limitation. Exercise caution as you can set the charging current higher than intended.
 
 run `sudo python3 set-cc.py `
+
+### Wirte EEPROM
+
+Write the EEPROM value for the time between power on and loading soft war to limit der max current.
+
+Register: `0x20`
