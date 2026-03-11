@@ -6,6 +6,10 @@ Dieses Repository enthält die Software, um die ursprüngliche Steuerung des **J
 
 ⚠️ **Wichtig: Dieses Projekt verändert das Ladeverhalten des Juice Booster.**  
 
+### Update
+Da der Booster jetzt auch bei einigen im PV Modus in EVCC verwendet wird gibt es einige Probleme was das regelverhalten des Ladestroms angeht. Ich werde hier schauen, dass man die Stromstärke unabhängig vom aufdruck des Boosters (6,8,10,13 A...) setzten kann, damit man den PV-überschuss besser nutzen kann.  
+
+
 ### Funktionen  
 
 - Ersetzt die originale Juice Booster Ansteuerung im Juice CHARGER Easy.  
